@@ -1,0 +1,11 @@
+{
+    "discord": {
+        "webhookUrl": "https://discordapp.com/api/webhooks/073007300730073000/ahoyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+    },
+    "camera": {
+        "snapWait": 5000
+    },
+    "gpio": {
+        "pin": 4
+    }
+}
