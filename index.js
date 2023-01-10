@@ -4,6 +4,8 @@ import { Gpio } from 'onoff';
 import Axios from 'axios';
 import FormData from 'form-data';
 import { StillCamera, AwbMode } from "pi-camera-connect";
+import { spawn } from "child_process"
+import { readFileSync } from 'fs';
 process.env["NODE_CONFIG_DIR"] = dirname(fileURLToPath(import.meta.url)) + "/config/";
 console.log(process.env["NODE_CONFIG_DIR"]);
 import Config from 'config';
@@ -31,13 +33,34 @@ const disco = (msg) => {
 const takeShot = () => {
     cam.takeImage().then((image) => {
         const formdata = new FormData();
-        formdata.append('file', image, {filename: 'out.jpg', contentType: 'image/jpeg', knownLength: image.length});
-
+        formdata.append('file', image, { filename: 'out.jpg', contentType: 'image/jpeg', knownLength: image.length });
         Axios.post(Config.get('discord.webhookUrl'),
-            formdata.getBuffer(), {headers: formdata.getHeaders()}
-            ).catch((error) => {console.log(error);})
+            formdata.getBuffer(), { headers: formdata.getHeaders() }
+        ).catch((error) => { console.log(error); })
     }).catch((error) => {
         disco('写真撮るの失敗した\r\n' + error);
+    });
+}
+
+const takeShotStill = () => {
+    let proc = spawn('libcamera-jpeg', ['-n', '-t', '1', '--width', '640', '--height', '480', '-o', 'still.jpg']);
+    proc.stderr.on('data', (data) => {
+        console.log(data.toString());
+    });
+    proc.stdout.on('data', (data) => {
+        console.log(data.toString());
+    });
+    proc.on("close", (code, sig) => {
+        if (code == 0) {
+            const image = readFileSync('still.jpg');
+            const formdata = new FormData();
+            formdata.append('file', image, { filename: 'out.jpg', contentType: 'image/jpeg', knownLength: image.length });
+            Axios.post(Config.get('discord.webhookUrl'),
+                formdata.getBuffer(), { headers: formdata.getHeaders() }
+            ).catch((error) => { console.log(error); })
+        } else {
+            disco(`写真撮るの失敗した\r\nchild process returns: ${code}`);
+        }
     });
 }
 
@@ -48,10 +71,11 @@ button.watch(function (err, state) {
         disco('インターホン呼出し (' + new Date().toLocaleString() + ')');
         last_pressed = Date.now();
         release_reported = false;
-        
+
         setTimeout(() => {
-            if(!release_reported) {
-                takeShot();
+            if (!release_reported) {
+                // takeShot();
+                takeShotStill();
             }
         }, Config.get('camera.snapWait'));
 
