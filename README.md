@@ -23,7 +23,7 @@ RaspberryPiに接続されたインターホンの接点出力を監視し、Dis
 ### Requirement
 
 * RaspberryPi
-* Node.js >= 14.16.1
+* Node.js >= 20.11.1
 * yarn (recommended)
 
 ## 補足
