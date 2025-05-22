@@ -11,8 +11,8 @@
   "author": "d11j",
   "license": "CC0-1.0",
   "dependencies": {
-    "axios": "^0.21.2",
-    "config": "^3.3.6",
+    "axios": "^1.6.7",
+    "config": "^3.3.11",
     "form-data": "^4.0.0",
     "onoff": "^6.0.1",
     "pi-camera-connect": "^0.3.4"

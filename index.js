@@ -1,14 +1,14 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { Gpio } from 'onoff';
 import Axios from 'axios';
+import { spawn } from "child_process";
+import Config from 'config';
 import FormData from 'form-data';
-import { StillCamera, AwbMode } from "pi-camera-connect";
-import { spawn } from "child_process"
 import { readFileSync } from 'fs';
+import { Gpio } from 'onoff';
+import { dirname } from 'path';
+import { AwbMode, StillCamera } from "pi-camera-connect";
+import { fileURLToPath } from 'url';
 process.env["NODE_CONFIG_DIR"] = dirname(fileURLToPath(import.meta.url)) + "/config/";
 console.log(process.env["NODE_CONFIG_DIR"]);
-import Config from 'config';
 
 // const cooltime = 10000;
 
