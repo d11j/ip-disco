@@ -3,18 +3,9 @@ import Config from 'config';
 import { readFileSync } from 'fs';
 import { Gpio } from 'onoff';
 import { dirname } from 'path';
-import { AwbMode, StillCamera } from "pi-camera-connect";
 import { fileURLToPath } from 'url';
 
 process.env["NODE_CONFIG_DIR"] = dirname(fileURLToPath(import.meta.url)) + "/config/";
-
-// カメラ設定
-const cam = new StillCamera({
-    width: 640,
-    height: 480,
-    delay: 200,
-    awbMode: AwbMode.Auto,
-});
 
 // インターホンA接点入力設定
 const button = new Gpio(Config.get('gpio.pin'), 'in', 'both');
