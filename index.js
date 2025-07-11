@@ -1,6 +1,5 @@
 import { spawn } from "child_process";
 import Config from 'config';
-import { readFileSync } from 'fs';
 import { Gpio } from 'onoff';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -43,35 +42,34 @@ const disco = async (msg) => {
  * libcamera-jpegを使用して写真を撮影し、Discordにアップロードします。
  */
 const takeShotStill = () => {
-    const imageFileName = 'still.jpg'; // 一時ファイル名
-    // libcamera-jpegプロセスを起動
-    let proc = spawn('libcamera-jpeg', ['-n', '-t', '1', '--width', '640', '--height', '480', '-o', imageFileName]);
-    let stderrOutput = ''; // 標準エラー出力をキャプチャ
+    // '-o -' でstdoutに画像データを出力させる
+    const proc = spawn('libcamera-jpeg', ['-n', '-t', '1', '--width', '640', '--height', '480', '-o', '-']);
+    
+    const chunks = [];
+    let stderrOutput = '';
 
-    // 標準エラー出力のデータを受信
-    // proc.stderr.on('data', (data) => {
-    //     stderrOutput += data.toString();
-    //     console.error('libcamera-jpeg stderr:', data.toString());
-    // });
-    // 標準出力のデータを受信 (通常、libcamera-jpegはほとんど出力しません)
-    // proc.stdout.on('data', (data) => {
-    //     console.log('libcamera-jpeg stdout:', data.toString());
-    // });
-    // プロセスが終了したときの処理
-    proc.on("close", async (code, sig) => {
-        if (code === 0) { // 成功した場合
+    // stdoutからデータを受け取る
+    proc.stdout.on('data', (chunk) => {
+        chunks.push(chunk);
+    });
+
+    proc.stderr.on('data', (data) => {
+        stderrOutput += data.toString();
+        console.error('libcamera-jpeg stderr:', data.toString());
+    });
+
+    // プロセスが終わったら、集めたデータをDiscordに送る
+    proc.on('close', async (code) => {
+        if (code === 0) {
+            const imageBuf = Buffer.concat(chunks);
+            const imageBlob = new Blob([imageBuf], { type: 'image/jpeg' });
+
+            const formdata = new FormData();
+            formdata.append('file', imageBlob, 'out.jpg');
+
+            const webhookUrl = Config.get('discord.webhookUrl');
+
             try {
-
-                const imageBuf = readFileSync(imageFileName);
-                const imageBlob = new Blob([imageBuf], { type: 'image/jpeg'});
-
-                const formdata = new FormData();
-                // FormDataにファイルを添付
-                formdata.append('file', imageBlob, 'out.jpg');
-
-                const webhookUrl = Config.get('discord.webhookUrl');
-
-                // 画像をアップロード
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     body: formdata
@@ -84,13 +82,11 @@ const takeShotStill = () => {
                     console.error(`Failed to upload image to Discord: ${response.status} ${response.statusText}`, errorText);
                     disco(`写真アップロード失敗: ${response.status} ${response.statusText}: ${errorText}`);
                 }
-
-            } catch (fsError) {
-                // ファイル読み込みエラーが発生した場合
-                console.error('Failed to read image file:', fsError);
-                disco(`写真ファイルの読み込みに失敗しました: ${fsError.message}`);
+            } catch (error) {
+                console.error('Failed to send message to Discord:', error.message);
+                disco(`Discordへの送信に失敗しました: ${error.message}`);
             }
-        } else { // 撮影に失敗した場合
+        } else {
             console.error(`libcamera-jpeg process exited with code ${code}. Stderr: ${stderrOutput}`);
             disco(`写真撮るの失敗した (終了コード: ${code}). エラー詳細:\r\n${stderrOutput || 'N/A'}`);
         }
