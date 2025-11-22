@@ -42,8 +42,8 @@ const disco = async (msg) => {
  * libcamera-jpegを使用して写真を撮影し、Discordにアップロードします。
  */
 const takeShotStill = () => {
-    // '-o -' でstdoutに画像データを出力させる
-    const proc = spawn('libcamera-jpeg', ['-n', '-t', '1', '--width', '640', '--height', '480', '-o', '-']);
+    // rpicam-stillを使い、'-o -' でstdoutに画像データを出力させる
+    const proc = spawn('rpicam-still', ['--nopreview', '-t', '1', '--width', '640', '--height', '480', '-o', '-']);
     
     const chunks = [];
     let stderrOutput = '';
@@ -55,7 +55,7 @@ const takeShotStill = () => {
 
     proc.stderr.on('data', (data) => {
         stderrOutput += data.toString();
-        console.error('libcamera-jpeg stderr:', data.toString());
+        console.error('rpicam-still stderr:', data.toString());
     });
 
     // プロセスが終わったら、集めたデータをDiscordに送る
@@ -87,8 +87,8 @@ const takeShotStill = () => {
                 disco(`Discordへの送信に失敗しました: ${error.message}`);
             }
         } else {
-            console.error(`libcamera-jpeg process exited with code ${code}. Stderr: ${stderrOutput}`);
-            disco(`写真撮るの失敗した (終了コード: ${code}). エラー詳細:\r\n${stderrOutput || 'N/A'}`);
+            console.error(`rpicam-still process exited with code ${code}. Stderr: ${stderrOutput}`);
+            disco(`写真撮影に失敗しました (終了コード: ${code})。エラー詳細:\r\n${stderrOutput || 'N/A'}`);
         }
     });
 };
@@ -111,7 +111,12 @@ button.watch(function (err, state) {
         setTimeout(() => {
             // A接点がブレークしてなかったら撮影
             if (!release_reported) {
-                takeShotStill();
+                try {
+                    takeShotStill();
+                } catch (e) {
+                    console.error('Error taking photo:', e);
+                    disco('写真撮影中にエラー発生: ' + e.message);
+                }
             }
         }, Config.get('camera.snapWait'));
 
